@@ -38,7 +38,7 @@ This will automatically place the executable in your system path and create a de
 sudo apt update
 sudo apt install build-essential qt5-qmake qtbase5-dev \
                  libqt5widgets5 libqt5gui5 libqt5core5a \
-                 libqt5opengl5-dev
+                 libqt5opengl5-dev libeigen3-dev
 ```
 Clone the repository and run the following build commands:
 
