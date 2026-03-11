@@ -31,7 +31,7 @@ sudo apt install ./SuperMeshPro_1.0.0_amd64.deb
 ```
 This will automatically place the executable in your system path and create a desktop shortcut.
 
-## Option B: Compile from Source
+### Option B: Compile from Source
 
 ```bash
 # Install required dependencies
