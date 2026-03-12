@@ -59,5 +59,9 @@ Once compiled, you can run the binary directly from the build directory:
 
 ![screen](./screenshot.png)
 
+## Figshare DOI
+
+Link: https://doi.org/10.6084/m9.figshare.31672789
+
 ## License
 SuperMeshPro is completely free and open-source software licensed under the GNU General Public License v3.0 (GPLv3).
