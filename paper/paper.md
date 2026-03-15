@@ -47,11 +47,11 @@ Subdivision surface algorithms provide a mathematically robust means of converti
 
 In addition, the simplified schematic diagram shown in \autoref{fig:fig5} presents the working principle of the modules in SuperMeshPro. The user input will be fed into the core of the model which then fed into geometrical module for subdivision. The subdivided topology will then be available for physics engine analysis. The final results would then be presented over the supplied geometry in an OpenGL window.
 
-![Schematic diagram showing interaction of different modules in SuperMeshPro model.\label{fig:fig5}](fig5.pdf){ width=60% }
+![Schematic diagram showing interaction of different modules in SuperMeshPro model.\label{fig:fig5}](fig5.pdf)
 
 Lastly, it needs to be noted that the present model takes standard obj 3D file format and a custom file format as shown schematically in \autoref{fig:fig6}.
 
-![Schematic diagram showing the SuperMeshPro custom file format.\label{fig:fig6}](fig6.pdf){ width=60% }
+![Schematic diagram showing the SuperMeshPro custom file format.\label{fig:fig6}](fig6.pdf)
 
 ## Geometric Modeling and Topology
 
