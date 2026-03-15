@@ -41,15 +41,15 @@ Subdivision surface algorithms provide a mathematically robust means of converti
 
 # Software Architecture and Mathematical Models
 
-`SuperMeshPro` utilizes a custom `MeshTopology` data structure that represents vertices, edges, and faces, enabling rapid traversal for subdivision, smoothing, and physical area/volume calculations. The SuperMeshPro graphical user interface (GUI) is shown in Fig. \autoref{fig:smp}. 
+`SuperMeshPro` utilizes a custom `MeshTopology` data structure that represents vertices, edges, and faces, enabling rapid traversal for subdivision, smoothing, and physical area/volume calculations. The SuperMeshPro graphical user interface (GUI) is shown in \autoref{fig:smp}. 
 
 ![SuperMeshPro GUI in action.\label{fig:smp}](smp.pdf)
 
-In addition, the simplified schematic diagram shown in Fig. \autoref{fig:fig5} presents the working principle of the modules in SuperMeshPro. The user input will be fed into the core of the model which then fed into geometrical module for subdivision. The subdivided topology will then be available for physics engine analysis. The final results would then be presented over the supplied geometry in an OpenGL window.
+In addition, the simplified schematic diagram shown in \autoref{fig:fig5} presents the working principle of the modules in SuperMeshPro. The user input will be fed into the core of the model which then fed into geometrical module for subdivision. The subdivided topology will then be available for physics engine analysis. The final results would then be presented over the supplied geometry in an OpenGL window.
 
 ![Schematic diagram showing interaction of different modules in SuperMeshPro model.\label{fig:fig5}](fig5.pdf)
 
-Lastly, it needs to be noted that the present model takes standard obj 3D file format and a custom file format as shown schematically in Fig. \autoref{fig:fig6}.
+Lastly, it needs to be noted that the present model takes standard obj 3D file format and a custom file format as shown schematically in \autoref{fig:fig6}.
 
 ![Schematic diagram showing the SuperMeshPro custom file format.\label{fig:fig6}](fig6.pdf)
 
@@ -65,22 +65,22 @@ $$\mathbf{v}' = \frac{\mathbf{v}_{prev} + \mathbf{v}_{next} + 4\mathbf{v} + 2\ma
 
 3. **Loop** [@19]: Suitable for triangular meshes. This is employs an intermediate weight $\alpha_n$ based on vertex valence to smoothly distribute positional updates among neighboring vertices.
 
-In order to analyze surface quality, discrete Gaussian curvature has been evaluated at each vertex using the angle defect formulation $K_v = 2\pi - \sum_{i} \theta_i$, where $\theta_i$ represents the interior angles of the adjacent faces. Global mesh properties, such as polyhedral volume has also been computed by employing the divergence theorem that was applied over triangulated surface faces. The heatmap of the curvature result from surface subdivision using three different methods are shown in Fig. \autoref{fig:fig1} for an open cube with four sharp vertices.
+In order to analyze surface quality, discrete Gaussian curvature has been evaluated at each vertex using the angle defect formulation $K_v = 2\pi - \sum_{i} \theta_i$, where $\theta_i$ represents the interior angles of the adjacent faces. Global mesh properties, such as polyhedral volume has also been computed by employing the divergence theorem that was applied over triangulated surface faces. The heatmap of the curvature result from surface subdivision using three different methods are shown in \autoref{fig:fig1} for an open cube with four sharp vertices.
 
 ![Surface subdivision tests using Catmull-Clark, Doo-Sabin and Loop methods with curvature heatmap for an open cube with four sharp vertices.\label{fig:fig1}](fig1.pdf)
 
 ## Implemented Multi-Physics Solvers
 
-* **Nonlinear Finite Element Analysis** (see Fig. \autoref{fig:fig2}): The FEA solver implements a 6-DOF flat shell element formulation, combining membrane, bending, and transverse shear stiffness to capture complex spatial deformations [@20; @21]. In order to capture large deformations, the solver employs a Newton-Raphson nonlinear loop, solving the iterative displacement increment $\delta \mathbf{U}$ using the residual out of balance force vector $\mathbf{R}_{res}$:
+* **Nonlinear Finite Element Analysis** (see \autoref{fig:fig2}): The FEA solver implements a 6-DOF flat shell element formulation, combining membrane, bending, and transverse shear stiffness to capture complex spatial deformations [@20; @21]. In order to capture large deformations, the solver employs a Newton-Raphson nonlinear loop, solving the iterative displacement increment $\delta \mathbf{U}$ using the residual out of balance force vector $\mathbf{R}_{res}$:
 $$\mathbf{K}_T \delta \mathbf{U} = \mathbf{R}_{res} = \mathbf{F}_{ext} - \mathbf{F}_{int}$$
 
 ![FEA steel plate bending test using SuperMeshPo FEA analysis module.\label{fig:fig2}](fig2.pdf)
 
-* **Steady State Heat Transfer** (see Fig. \autoref{fig:fig3}): Thermal conduction is governed by an isotropic conductivity matrix having Dirichlet boundary conditions enforced using the penalty method. The resulting symmetric positive system is solved efficiently using `Eigen::SimplicialLDLT`.
+* **Steady State Heat Transfer** (see \autoref{fig:fig3}): Thermal conduction is governed by an isotropic conductivity matrix having Dirichlet boundary conditions enforced using the penalty method. The resulting symmetric positive system is solved efficiently using `Eigen::SimplicialLDLT`.
 
 ![Heat transfer module test on a subdivided open cube using Catmull-Clark method.\label{fig:fig3}](fig3.pdf)
 
-* **Ray Tracing Optics** (see Fig. \autoref{fig:fig4}): The ray tracing method was implemented in a multithreaded fashion for particle transport. Ray triangle intersections were resolved using the Moller-Trumbore algorithm [@22]. The diffuse and specular reflections were computed by perturbing the ideal normal vector $\mathbf{N}$ with a bounded random vector $\mathbf{S}_{rand}$ to create a random scattering profile [@23]:
+* **Ray Tracing Optics** (see \autoref{fig:fig4}): The ray tracing method was implemented in a multithreaded fashion for particle transport. Ray triangle intersections were resolved using the Moller-Trumbore algorithm [@22]. The diffuse and specular reflections were computed by perturbing the ideal normal vector $\mathbf{N}$ with a bounded random vector $\mathbf{S}_{rand}$ to create a random scattering profile [@23]:
 $$\mathbf{R}_{scatter} = \frac{\mathbf{N} + \mathbf{S}_{rand}}{||\mathbf{N} + \mathbf{S}_{rand}||}$$
 
 ![Ray tracing module test on a subdivided open cube using Catmull-Clark method.\label{fig:fig4}](fig4.pdf)
