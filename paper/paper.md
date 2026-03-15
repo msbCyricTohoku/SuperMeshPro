@@ -43,7 +43,7 @@ Subdivision surface algorithms provide a mathematically robust means of converti
 
 `SuperMeshPro` utilizes a custom `MeshTopology` data structure that represents vertices, edges, and faces, enabling rapid traversal for subdivision, smoothing, and physical area/volume calculations. The SuperMeshPro graphical user interface (GUI) is shown in \autoref{fig:smp}. 
 
-![SuperMeshPro GUI in action.\label{fig:smp}](smp.pdf){ width=60% }
+![SuperMeshPro GUI in action.\label{fig:smp}](smp.pdf)
 
 In addition, the simplified schematic diagram shown in \autoref{fig:fig5} presents the working principle of the modules in SuperMeshPro. The user input will be fed into the core of the model which then fed into geometrical module for subdivision. The subdivided topology will then be available for physics engine analysis. The final results would then be presented over the supplied geometry in an OpenGL window.
 
