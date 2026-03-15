@@ -80,7 +80,7 @@ Before you can run a simulation, you need a model.
 
 #### Importing a Mesh
 1.  Go to `File` > `Open`.
-2.  Select a standard `.obj` file or a SuperMeshPro custom `.txt` format file. 
+2.  Select a standard `.obj` file or a SuperMeshPro custom `.txt` format file. Feel free to load some of our test objects located under `test_objects` directory.
 3.  The mesh will automatically load, center itself in the viewport, and scale to fit perfectly on screen. (Note when you load a model make sure to zoom out with mouse scroll to see it)
 
 #### Refining and Smoothing the Mesh
