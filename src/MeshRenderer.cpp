@@ -79,7 +79,7 @@ void MeshRenderer::resizeGL(int w, int h) {
     float aspect = static_cast<float>(w) / (h ? h : 1);
     float fovY = 30.0f;
 
-    // CHANGE THIS LINE: Extend the far clipping plane to 10,000
+    //extending the far clipping plane to 10000
     float zNear = 1.0f, zFar = 10000.0f;
 
     float fH = tan(fovY / 360.0f * 3.14159f) * zNear;
@@ -202,10 +202,10 @@ void MeshRenderer::paintGL() {
         glBegin(GL_POINTS);
         for (const Vertex &v : m_mesh.vertices) {
             if (v.isAnchored) {
-                glColor3f(1.0f, 0.0f, 0.0f); // RED for fixed anchors
+                glColor3f(1.0f, 0.0f, 0.0f); //RED color for fixed anchors
             }
             else if (v.isSelected) {
-                glColor3f(1.0f, 0.0f, 1.0f); // MAGENTA for pulling
+                glColor3f(1.0f, 0.0f, 1.0f); //MAGENTA for pulling
             }
             else if (v.sharpness >= 3) glColor3f(0.0f, 0.0f, 1.0f);
             else if (v.sharpness == 2) glColor3f(0.0f, 1.0f, 0.0f);
@@ -219,18 +219,18 @@ void MeshRenderer::paintGL() {
 
     //ray tracing-------------------
     if (!m_rayPaths.empty()) {
-        glDisable(GL_LIGHTING); // Lasers should glow brightly, no shading
-        glLineWidth(3.0f);      // Make the beam thick
+        glDisable(GL_LIGHTING); //lasers should glow brightly, no shading
+        glLineWidth(3.0f);      //make the beam thick
 
         for (const auto& path : m_rayPaths) {
             glBegin(GL_LINE_STRIP);
-            glColor3f(0.0f, 1.0f, 0.0f); // Neon Green Laser
+            glColor3f(0.0f, 1.0f, 0.0f); //Neon green for rays
             for (const auto& pt : path) {
                 glVertex3f(pt.x(), pt.y(), pt.z());
             }
             glEnd();
 
-            // Draw a small red dot at the impact points
+            //draw a small red dot at the impact points
             glPointSize(8.0f);
             glBegin(GL_POINTS);
             glColor3f(1.0f, 0.0f, 0.0f);
@@ -240,7 +240,7 @@ void MeshRenderer::paintGL() {
             glEnd();
         }
 
-        if (m_enableLighting) glEnable(GL_LIGHTING); // Restore lighting
+        if (m_enableLighting) glEnable(GL_LIGHTING); //restore lighting
     }
 
         //ray tracing-------------------
@@ -526,7 +526,7 @@ void MeshRenderer::resetCameraToMesh()
 {
     if (m_mesh.vertices.empty()) return;
 
-    // 1. Calculate the physical bounding box
+    //calculate the physical bounding box
     double minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9, minZ = 1e9, maxZ = -1e9;
     for (const auto& v : m_mesh.vertices) {
         if (v.x < minX) minX = v.x;
@@ -544,16 +544,16 @@ void MeshRenderer::resetCameraToMesh()
     double maxSpan = spanX;
     if (spanY > maxSpan) maxSpan = spanY;
     if (spanZ > maxSpan) maxSpan = spanZ;
-    if (maxSpan == 0.0) maxSpan = 1.0; // Avoid division by zero
+    if (maxSpan == 0.0) maxSpan = 1.0; //avoid division by zero
 
-    // 2. Pull the camera back by roughly 1.5x to 2.0x the largest dimension
+    //pull the camera back by roughly 1.5x to 2.0x the largest dimension
     m_zTrans = -(maxSpan * 1.5f);
     m_xRot = 0.0f;
     m_yRot = 0.0f;
 
-    // 3. Dynamically set the mouse wheel zoom speed so it feels natural
+    //dynamically set the mouse wheel zoom speed so it feels natural
     m_zoomSpeed = maxSpan / 20.0f;
-    if (m_zoomSpeed < 0.1f) m_zoomSpeed = 0.1f; // Minimum zoom speed limit
+    if (m_zoomSpeed < 0.1f) m_zoomSpeed = 0.1f; //minimum zoom speed limit
 
     update();
 }

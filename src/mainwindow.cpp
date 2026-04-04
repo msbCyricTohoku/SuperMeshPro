@@ -334,7 +334,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     //for FEA run button connect ******************** double check
     connect(btnRunFEA, &QPushButton::clicked, this, [this, youngsBox, poissonBox, thickBox, densityBox, forceBox, axisBox, scaleBox, chkGravity, chkNonLinear]() {
-        // Clear lasers before running FEA
+
         m_renderer->clearRays();
         FEA_Analysis(youngsBox->value(), poissonBox->value(), thickBox->value(), densityBox->value(),
                      forceBox->value(), axisBox->currentIndex(), scaleBox->value(),
@@ -555,12 +555,12 @@ void MainWindow::on_actionSaveAs_triggered() {
 
         out << "# Exported from SuperMeshPro\n";
 
-        // Write vertices
+        //write vertices
         for (const auto& v : m_currentMesh.vertices) {
             out << "v " << v.x << " " << v.y << " " << v.z << "\n";
         }
 
-        // Write faces
+        //write faces
         for (const auto& f : m_currentMesh.faces) {
             out << "f ";
             //obj files use 1-based indexing

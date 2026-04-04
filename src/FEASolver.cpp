@@ -154,7 +154,7 @@ bool FEASolver::solve(bool useGravity, bool useNonLinear) {
               << "Non-Linear Geometry: " << (useNonLinear ? "ON" : "OFF") << "\n"
               << "Gravity (-Y): " << (useGravity ? "ON" : "OFF") << "\n";
 
-    // 2. Build the Base External Force Vector (Total Loads)
+    //build the Base External Force Vector (Total Loads)
     Eigen::VectorXd F_base = Eigen::VectorXd::Zero(dof);
     if (useGravity) {
         for (size_t fIdx = 0; fIdx < m_mesh.faces.size(); ++fIdx) {
