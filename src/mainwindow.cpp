@@ -516,12 +516,16 @@ void MainWindow::on_actionOpen_triggered() {
         if (m_currentMesh.loadFromFile(fileName.toStdString())) {
 
             //center camera and scale
-            m_currentMesh.normalize();
+            //m_currentMesh.normalize();
 
             m_history.clear(); //reset history upong new file upload, note it is important otherwise it creates a mess
             ui->actionUndo->setEnabled(false);
 
             m_renderer->setMesh(m_currentMesh);
+
+
+            m_renderer->resetCameraToMesh();
+
             updateAnalysisPanel();
             setWindowTitle("SuperMeshPro - " + fileName);
         } else {

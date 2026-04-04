@@ -87,7 +87,14 @@ Eigen::MatrixXd FEASolver::computeElementStiffness(const Vertex& v1, const Verte
 
     double G = E / (2.0 * (1.0 + nu));
     double k_shear = 5.0 / 6.0;
-    Eigen::Matrix2d Ds = Eigen::Matrix2d::Identity() * (k_shear * G * m_mat.thickness);
+
+    //calculates a relaxation factor based on thickness squared vs area
+    double alpha = (m_mat.thickness * m_mat.thickness) / (A + 1e-9);
+
+    if (alpha > 1.0) alpha = 1.0;
+    if (alpha < 0.005) alpha = 0.001; //0.005  1e-6
+    //                                                                  shear matrix X by alpha
+    Eigen::Matrix2d Ds = Eigen::Matrix2d::Identity() * (k_shear * G * m_mat.thickness * alpha);
     Eigen::MatrixXd K_shear = Bs.transpose() * Ds * Bs * A;
 
     Eigen::MatrixXd Kb = K_bend + K_shear;

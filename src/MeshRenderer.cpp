@@ -56,6 +56,7 @@ void MeshRenderer::initializeGL() {
     glEnable(GL_LIGHT0);
 }
 
+/*
 void MeshRenderer::resizeGL(int w, int h) {
     glViewport(0, 0, w, h);
     glMatrixMode(GL_PROJECTION);
@@ -63,6 +64,24 @@ void MeshRenderer::resizeGL(int w, int h) {
     float aspect = static_cast<float>(w) / (h ? h : 1);
     float fovY = 30.0f;
     float zNear = 1.0f, zFar = 50.0f;
+    float fH = tan(fovY / 360.0f * 3.14159f) * zNear;
+    float fW = fH * aspect;
+    glFrustum(-fW, fW, -fH, fH, zNear, zFar);
+    glMatrixMode(GL_MODELVIEW);
+}
+*/
+
+
+void MeshRenderer::resizeGL(int w, int h) {
+    glViewport(0, 0, w, h);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    float aspect = static_cast<float>(w) / (h ? h : 1);
+    float fovY = 30.0f;
+
+    // CHANGE THIS LINE: Extend the far clipping plane to 10,000
+    float zNear = 1.0f, zFar = 10000.0f;
+
     float fH = tan(fovY / 360.0f * 3.14159f) * zNear;
     float fW = fH * aspect;
     glFrustum(-fW, fW, -fH, fH, zNear, zFar);
@@ -240,7 +259,8 @@ void MeshRenderer::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void MeshRenderer::wheelEvent(QWheelEvent *event) {
-    m_zTrans += (event->angleDelta().y() / 120.0f) * 0.5f;
+    //m_zTrans += (event->angleDelta().y() / 120.0f) * 50.0f;
+    m_zTrans += (event->angleDelta().y() / 120.0f) * m_zoomSpeed;
     update();
 }
 
@@ -378,7 +398,8 @@ int MeshRenderer::pickVertex(const QPoint& mousePos) {
     QMatrix4x4 proj;
 
     float aspect = static_cast<float>(width()) / (height() ? height() : 1);
-    proj.perspective(30.0f, aspect, 1.0f, 50.0f);
+    //proj.perspective(30.0f, aspect, 1.0f, 50.0f);
+    proj.perspective(30.0f, aspect, 1.0f, 10000.0f);
 
     QMatrix4x4 mv;
     mv.translate(0.0f, 0.0f, m_zTrans);
@@ -498,6 +519,42 @@ void MeshRenderer::addRayPath(const std::vector<Eigen::Vector3d>& path) {
 
 void MeshRenderer::clearRays() {
     m_rayPaths.clear();
+    update();
+}
+
+void MeshRenderer::resetCameraToMesh()
+{
+    if (m_mesh.vertices.empty()) return;
+
+    // 1. Calculate the physical bounding box
+    double minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9, minZ = 1e9, maxZ = -1e9;
+    for (const auto& v : m_mesh.vertices) {
+        if (v.x < minX) minX = v.x;
+        if (v.x > maxX) maxX = v.x;
+        if (v.y < minY) minY = v.y;
+        if (v.y > maxY) maxY = v.y;
+        if (v.z < minZ) minZ = v.z;
+        if (v.z > maxZ) maxZ = v.z;
+    }
+
+    double spanX = maxX - minX;
+    double spanY = maxY - minY;
+    double spanZ = maxZ - minZ;
+
+    double maxSpan = spanX;
+    if (spanY > maxSpan) maxSpan = spanY;
+    if (spanZ > maxSpan) maxSpan = spanZ;
+    if (maxSpan == 0.0) maxSpan = 1.0; // Avoid division by zero
+
+    // 2. Pull the camera back by roughly 1.5x to 2.0x the largest dimension
+    m_zTrans = -(maxSpan * 1.5f);
+    m_xRot = 0.0f;
+    m_yRot = 0.0f;
+
+    // 3. Dynamically set the mouse wheel zoom speed so it feels natural
+    m_zoomSpeed = maxSpan / 20.0f;
+    if (m_zoomSpeed < 0.1f) m_zoomSpeed = 0.1f; // Minimum zoom speed limit
+
     update();
 }
 

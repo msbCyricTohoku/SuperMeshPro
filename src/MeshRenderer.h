@@ -45,6 +45,8 @@ public:
     void addRayPath(const std::vector<Eigen::Vector3d>& path);
     void clearRays();
 
+    void resetCameraToMesh();
+
 protected:
     void initializeGL() override;
     void resizeGL(int w, int h) override;
@@ -73,8 +75,10 @@ private:
     // this is for camera controls, later i added proper scaling so keep this fix unless neccessary to change
     float m_xRot = 0.0f;
     float m_yRot = 0.0f;
-    float m_zTrans = -5.0f;
+    //float m_zTrans = -5.0f;
+    float m_zTrans = -2500.0f;
     QPoint m_lastMousePos;
+    float m_zoomSpeed = 0.5f;
 
     void calculateNormals();
     std::vector<int> getFaceVertices(int faceIndex) const;
