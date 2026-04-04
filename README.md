@@ -27,7 +27,7 @@ You can install SuperMeshPro by either downloading the pre-packaged Debian build
 Head over to the **Releases** section of this repository and download the latest `.deb` file. Install it using:
 
 ```bash
-sudo apt install ./SuperMeshPro_1.0.0_amd64.deb
+sudo apt install ./SuperMeshPro_0.1.0_amd64.deb
 ```
 This will automatically place the executable in your system path and create a desktop shortcut.
 
