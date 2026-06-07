@@ -157,7 +157,7 @@ Neon green lines will appear in the viewport, mapping the exact paths of the ray
 
 ---
 
-#### 6. Exporting Data and Models
+### 6. Exporting Data and Models
 Once a simulation or subdivision is complete, SuperMeshPro provides multiple ways to export your work for external analysis or manufacturing. All options are located under the File menu.
 1. Save As OBJ: Exports the current 3D geometry as a standard Wavefront .obj file. Useful for importing into Blender or Maya.
 2. Export STL: Generates a Binary .stl file. The software will automatically triangulate your mesh and calculate face normals. This is the required format for 3D printing and importing into CAD software like SolidWorks.
