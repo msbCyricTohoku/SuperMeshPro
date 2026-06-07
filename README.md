@@ -155,6 +155,14 @@ Neon green lines will appear in the viewport, mapping the exact paths of the ray
 
 *(Note: Ray tracing is computationally heavy! Shooting 100,000 rays with 50 bounces may take a few moments -- I tested this on my AMD Ryzen Threadripper 9960X and it can handle it well).*
 
+
+#### 6. Exporting Data and Models
+Once a simulation or subdivision is complete, SuperMeshPro provides multiple ways to export your work for external analysis or manufacturing. All options are located under the File menu.
+1. Save As OBJ: Exports the current 3D geometry as a standard Wavefront .obj file. Useful for importing into Blender or Maya.
+2. Export STL: Generates a Binary .stl file. The software will automatically triangulate your mesh and calculate face normals. This is the required format for 3D printing and importing into CAD software like SolidWorks.
+3. Export VTK: Exports the mesh geometry alongside the currently active physics heatmap (Stress, Temp, etc.) as a .vtk file. This is ideal for professional visualization and analysis in ParaView.
+4. Export CSV: Dumps the raw numerical data (Coordinates, Curvature, Stress, Energy, Temperature) for every vertex into a spreadsheet for Python/MATLAB processing.
+
 ## Screenshot
 
 ![screen](./screenshot.png)
