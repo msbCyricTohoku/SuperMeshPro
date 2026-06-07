@@ -155,6 +155,7 @@ Neon green lines will appear in the viewport, mapping the exact paths of the ray
 
 *(Note: Ray tracing is computationally heavy! Shooting 100,000 rays with 50 bounces may take a few moments -- I tested this on my AMD Ryzen Threadripper 9960X and it can handle it well).*
 
+---
 
 #### 6. Exporting Data and Models
 Once a simulation or subdivision is complete, SuperMeshPro provides multiple ways to export your work for external analysis or manufacturing. All options are located under the File menu.
