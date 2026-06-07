@@ -48,6 +48,10 @@ private slots:
 
     void on_actionChange_Wire_Color_triggered();
 
+    void on_actionExport_CSV_triggered();
+    void on_actionExport_VTK_triggered();
+    void on_actionExport_STL_triggered();
+
 private:
     Ui::MainWindow *ui;
     MeshRenderer *m_renderer;

@@ -245,6 +245,16 @@ void MeshRenderer::paintGL() {
 
         //ray tracing-------------------
 
+    if (m_enableClipping) {
+        GLdouble planeEq[4] = { 0.0, 0.0, 1.0, m_clipHeight };
+        glClipPlane(GL_CLIP_PLANE0, planeEq);
+        glEnable(GL_CLIP_PLANE0);
+    } else {
+        glDisable(GL_CLIP_PLANE0);
+    }
+
+    glDisable(GL_CLIP_PLANE0);
+
     drawAxisTriad();
 }
 
@@ -555,6 +565,13 @@ void MeshRenderer::resetCameraToMesh()
     m_zoomSpeed = maxSpan / 20.0f;
     if (m_zoomSpeed < 0.1f) m_zoomSpeed = 0.1f; //minimum zoom speed limit
 
+    update();
+}
+
+void MeshRenderer::setClipPlane(bool enable, double heightZ)
+{
+    m_enableClipping = enable;
+    m_clipHeight = heightZ;
     update();
 }
 

@@ -26,6 +26,9 @@ public:
     void setHeatmapModes(bool showHeatmap, int heatmapType); //stress heatmap
 
     std::vector<double> m_curvatures;
+    std::vector<double> m_stresses;
+    std::vector<double> m_energies;
+    std::vector<double> m_temperatures;
 
     const MeshTopology& getMesh() const { return m_mesh; }
 
@@ -46,6 +49,11 @@ public:
     void clearRays();
 
     void resetCameraToMesh();
+
+    void setClipPlane(bool enable, double heightZ);
+
+    bool m_enableClipping = false;
+    double m_clipHeight = 0.0;
 
 protected:
     void initializeGL() override;
@@ -96,9 +104,7 @@ private:
         void drawAxisTriad();
 
 
-        std::vector<double> m_stresses;
-        std::vector<double> m_energies;
-        std::vector<double> m_temperatures;
+
 
         HeatmapSource m_heatmapSource = HeatmapSource::Curvature; //default set to curvature heatmap
 

@@ -20,7 +20,7 @@
      <x>0</x>
      <y>0</y>
      <width>1024</width>
-     <height>20</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -29,6 +29,9 @@
     </property>
     <addaction name="actionOpen"/>
     <addaction name="actionSaveAs"/>
+    <addaction name="actionExport_CSV"/>
+    <addaction name="actionExport_VTK"/>
+    <addaction name="actionExport_STL"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
@@ -221,6 +224,21 @@
   <action name="actionChange_Wire_Color">
    <property name="text">
     <string>Change Wire Color</string>
+   </property>
+  </action>
+  <action name="actionExport_CSV">
+   <property name="text">
+    <string>Export CSV</string>
+   </property>
+  </action>
+  <action name="actionExport_VTK">
+   <property name="text">
+    <string>Export VTK</string>
+   </property>
+  </action>
+  <action name="actionExport_STL">
+   <property name="text">
+    <string>Export STL</string>
    </property>
   </action>
  </widget>

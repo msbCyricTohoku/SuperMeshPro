@@ -15,6 +15,7 @@
 #include "FEASolver.h"
 #include <QPushButton>
 #include <iostream>
+#include <cstdint>
 #include "RayTracingOptic.h"
 #include "HeatTransfer.h"
 
@@ -85,6 +86,27 @@ MainWindow::MainWindow(QWidget *parent)
     QComboBox *colorMapCombo = new QComboBox(this);
     colorMapCombo->addItems({"Jet (le Classic)", "Hot (le Thermal)", "Cool (le Stress)"});
     ui->toolBar->addWidget(colorMapCombo);
+
+    ui->toolBar->addSeparator();
+
+    QCheckBox *clipCheck = new QCheckBox(" Clip Plane ", this);
+    ui->toolBar->addWidget(clipCheck);
+
+    QSlider *clipSlider = new QSlider(Qt::Horizontal, this);
+    clipSlider->setRange(-100, 100); // Represents -100 to +100 offset
+    clipSlider->setValue(0);
+    clipSlider->setFixedWidth(120);
+    clipSlider->setEnabled(false);
+    ui->toolBar->addWidget(clipSlider);
+
+    connect(clipCheck, &QCheckBox::toggled, this, [this, clipSlider](bool checked) {
+        clipSlider->setEnabled(checked);
+        m_renderer->setClipPlane(checked, clipSlider->value());
+    });
+
+    connect(clipSlider, &QSlider::valueChanged, this, [this](int value) {
+        m_renderer->setClipPlane(true, (double)value);
+    });
 
     //checkbox connect
     connect(heatmapCheck, &QCheckBox::toggled, this, [this](bool checked) {
@@ -891,4 +913,169 @@ void MainWindow::on_actionChange_Wire_Color_triggered()
         updateRendererState();
     }
 }
+
+void MainWindow::on_actionExport_CSV_triggered()
+{
+    if (m_currentMesh.vertices.empty()) return;
+
+    QString fileName = QFileDialog::getSaveFileName(this, "Export Simulation Data (CSV)", "", "CSV Files (*.csv)");
+    if (fileName.isEmpty()) return;
+
+    if (!fileName.endsWith(".csv", Qt::CaseInsensitive)) fileName += ".csv";
+
+    std::ofstream out(fileName.toStdString());
+    out << "Node_ID,X,Y,Z,Curvature,VonMises_Stress,Optical_Energy,Temperature\n";
+
+    for (size_t i = 0; i < m_currentMesh.vertices.size(); ++i) {
+        const Vertex& v = m_currentMesh.vertices[i];
+        double curv = (i < m_renderer->m_curvatures.size()) ? m_renderer->m_curvatures[i] : 0.0;
+        double stress = (i < m_renderer->m_stresses.size()) ? m_renderer->m_stresses[i] : 0.0;
+        double energy = (i < m_renderer->m_energies.size()) ? m_renderer->m_energies[i] : 0.0;
+        double temp = (i < m_renderer->m_temperatures.size()) ? m_renderer->m_temperatures[i] : 0.0;
+
+        out << i << "," << v.x << "," << v.y << "," << v.z << ","
+            << curv << "," << stress << "," << energy << "," << temp << "\n";
+    }
+    out.close();
+    QMessageBox::information(this, "Export Success!", "Node data successfully exported to CSV.");
+}
+
+void MainWindow::on_actionExport_VTK_triggered()
+{
+    if (m_currentMesh.vertices.empty()) return;
+
+    QString fileName = QFileDialog::getSaveFileName(this, "Export to ParaView (VTK)", "", "VTK Files (*.vtk)");
+    if (fileName.isEmpty()) return;
+
+    if (!fileName.endsWith(".vtk", Qt::CaseInsensitive)) fileName += ".vtk";
+
+    std::ofstream out(fileName.toStdString());
+    out << "# vtk DataFile Version 3.0\n";
+    out << "SuperMeshPro Simulation Data\n";
+    out << "ASCII\n";
+    out << "DATASET POLYDATA\n";
+
+    //write Vertices
+    out << "POINTS " << m_currentMesh.vertices.size() << " float\n";
+    for (const auto& v : m_currentMesh.vertices) {
+        out << v.x << " " << v.y << " " << v.z << "\n";
+    }
+
+    //write faces
+    int totalIndices = 0;
+    for (const auto& f : m_currentMesh.faces) {
+        totalIndices += 1 + f.edgeRefs.size(); //1 for count, + the actual indices
+    }
+
+    out << "POLYGONS " << m_currentMesh.faces.size() << " " << totalIndices << "\n";
+    for (size_t i = 0; i < m_currentMesh.faces.size(); ++i) {
+        std::vector<int> vList = SubdivisionAlgorithms::getFaceVertices(m_currentMesh, i);
+        out << vList.size();
+        for (int idx : vList) out << " " << idx;
+        out << "\n";
+    }
+
+    out << "POINT_DATA " << m_currentMesh.vertices.size() << "\n";
+    out << "SCALARS Active_Analysis float 1\n";
+    out << "LOOKUP_TABLE default\n";
+
+    int mode = m_heatmapSourceCombo->currentIndex();
+    for (size_t i = 0; i < m_currentMesh.vertices.size(); ++i) {
+        double val = 0.0;
+        if (mode == 1 && i < m_renderer->m_stresses.size()) val = m_renderer->m_stresses[i];
+        else if (mode == 2 && i < m_renderer->m_energies.size()) val = m_renderer->m_energies[i];
+        else if (mode == 3 && i < m_renderer->m_temperatures.size()) val = m_renderer->m_temperatures[i];
+        else if (mode == 0 && i < m_renderer->m_curvatures.size()) val = m_renderer->m_curvatures[i];
+        out << val << "\n";
+    }
+
+    out.close();
+    QMessageBox::information(this, "VTK Export!", "Successfully exported for ParaView!");
+}
+
+void MainWindow::on_actionExport_STL_triggered()
+{
+    if (m_currentMesh.vertices.empty()) return;
+
+    QString fileName = QFileDialog::getSaveFileName(this, "Export for 3D Printing (STL)", "", "STL Files (*.stl)");
+    if (fileName.isEmpty()) return;
+
+    if (!fileName.endsWith(".stl", Qt::CaseInsensitive)) fileName += ".stl";
+
+    //open file in binary mode
+    std::ofstream out(fileName.toStdString(), std::ios::binary);
+    if (!out.is_open()) {
+        QMessageBox::warning(this, "Error", "Could not open file for writing.");
+        return;
+    }
+
+    //triangulation
+    //N-gon face is split into N-2 triangles
+    uint32_t totalTriangles = 0;
+    for (size_t i = 0; i < m_currentMesh.faces.size(); ++i) {
+        std::vector<int> vList = SubdivisionAlgorithms::getFaceVertices(m_currentMesh, i);
+        if (vList.size() >= 3) {
+            totalTriangles += (vList.size() - 2);
+        }
+    }
+
+    //80 byte stl header
+    char header[80] = {0};
+    std::string headerText = "Exported from SuperMeshPro Binary STL";
+    std::copy(headerText.begin(), headerText.begin() + std::min(headerText.size(), (size_t)79), header);
+    out.write(header, 80);
+
+    //write triangle numbers
+    out.write(reinterpret_cast<const char*>(&totalTriangles), sizeof(uint32_t));
+
+    auto writeVec3 = [&out](float x, float y, float z) {
+        out.write(reinterpret_cast<const char*>(&x), sizeof(float));
+        out.write(reinterpret_cast<const char*>(&y), sizeof(float));
+        out.write(reinterpret_cast<const char*>(&z), sizeof(float));
+    };
+
+    for (size_t i = 0; i < m_currentMesh.faces.size(); ++i) {
+        std::vector<int> vList = SubdivisionAlgorithms::getFaceVertices(m_currentMesh, i);
+        if (vList.size() < 3) continue;
+
+        const Vertex& v0 = m_currentMesh.vertices[vList[0]];
+
+        //triangle Fan algorithm to split Quads/N-gons into triangles
+        for (size_t j = 1; j + 1 < vList.size(); ++j) {
+            const Vertex& v1 = m_currentMesh.vertices[vList[j]];
+            const Vertex& v2 = m_currentMesh.vertices[vList[j + 1]];
+
+            //cross Product
+            double d1x = v1.x - v0.x, d1y = v1.y - v0.y, d1z = v1.z - v0.z;
+            double d2x = v2.x - v0.x, d2y = v2.y - v0.y, d2z = v2.z - v0.z;
+            double nx = d1y * d2z - d1z * d2y;
+            double ny = d1z * d2x - d1x * d2z;
+            double nz = d1x * d2y - d1y * d2x;
+
+            //normalize normal vec.
+            double len = std::sqrt(nx*nx + ny*ny + nz*nz);
+            if (len > 1e-9) {
+                nx /= len; ny /= len; nz /= len;
+            } else {
+                nx = 0; ny = 0; nz = 0;
+            }
+
+            //write normal vector
+            writeVec3((float)nx, (float)ny, (float)nz);
+
+            //write vertices V0, V1, V2 (36 bytes)
+            writeVec3((float)v0.x, (float)v0.y, (float)v0.z);
+            writeVec3((float)v1.x, (float)v1.y, (float)v1.z);
+            writeVec3((float)v2.x, (float)v2.y, (float)v2.z);
+
+            //write attribute byte count (2 bytes - standard is 0)
+            uint16_t attr = 0;
+            out.write(reinterpret_cast<const char*>(&attr), sizeof(uint16_t));
+        }
+    }
+
+    out.close();
+    QMessageBox::information(this, "STL Export", "Mesh successfully exported as a Binary STL for 3D Printing.");
+}
+
 
