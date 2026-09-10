@@ -21,17 +21,7 @@ SuperMeshPro is a unified C++ framework designed to bridge the gap between topol
 
 ## Installation
 
-You can install SuperMeshPro by either downloading the pre-packaged Debian build or compiling directly from source.
-
-### Option A: Install via .deb (Recommended for Debian/Ubuntu)
-Head over to the **Releases** section of this repository and download the latest `.deb` file. Install it using:
-
-```bash
-sudo apt install ./SuperMeshPro_0.1.0_amd64.deb
-```
-This will automatically place the executable in your system path and create a desktop shortcut.
-
-### Option B: Compile from Source
+### Compile from Source
 
 ```bash
 # Install required dependencies
@@ -68,7 +58,9 @@ Whether you're looking to run a structural FEA test on a bracket, analyze how he
 When you launch SuperMeshPro, you'll be greeted by a central 3D viewport and several control docks.
 
 * **The Viewport (Center):** This is where your 3D mesh lives. You can rotate, pan, and zoom to inspect your model from any angle.
-* **The Top Toolbar:** Contains quick actions for mesh manipulation, display modes (wireframe, solid, points), and color options.
+* **The Top Toolbar:** Contains quick actions for mesh manipulation, smoothing, and display modes (wireframe, solid, points). It also houses advanced visualization tools:
+* **Colormap Selection:** Change the heatmap gradient to *Jet (Classic)*, *Hot (Thermal)*, or *Cool (Stress)*.
+* **Clip Plane:** Enable this checkbox and use the slider (-100 to +100) to slice through the 3D model, allowing you to see internal mesh structures and inner ray-tracing bounces.
 * **Model Analysis Dock (Right side):** A read-only panel that instantly updates with geometric stats (volume, surface area, vertex count) every time you load or modify a mesh.
 * **Simulation Environment Dock (Left side):** This is your control center for running physics. It contains tabs for **FEA** (Finite Element Analysis), **Optics** (Ray Tracing), and **Heat Transfer**.
 
@@ -119,10 +111,21 @@ The **FEA** tab lets you bend and stress test your mesh using a non-linear 6-DOF
 Navigate to the **FEA** tab. Input your material's Young's Modulus ($E$), Poisson's Ratio ($\nu$), thickness, and density. 
 
 #### Step 2: Define Loads and Constraints
-Just like the thermal tab, you need to anchor the model and apply a force.
-1.  In the 3D viewport, hold **Ctrl + Left Click** to lock vertices in place (Anchors = Red dots). These vertices will not move. Note: Toggle Vertices must be on, tick it in View tab or hit Ctrl+v
-2.  Hold **Shift + Left Click** to select the vertices you want to pull (Loads = Magenta dots). Note: Toggle Vertices must be on, tick it in View tab or hit Ctrl+v
-3.  In the UI, set the **Total Force** (in Newtons) and select which axis (X, Y, or Z) you want the force to push/pull along.
+Just like the thermal tab, you need to anchor the model and apply a force. You can do this manually or using the Quick Selection Tools.
+
+**Manual Selection:**
+1. In the 3D viewport, hold **Ctrl + Left Click** to lock vertices in place (Anchors = Red dots).
+2. Hold **Shift + Left Click** to select the vertices you want to pull (Loads = Magenta dots). *(Note: Toggle Vertices must be on, tick it in View tab or hit Ctrl+v)*
+
+**Quick Selection Tools:**
+Under the FEA tab, you can use the **Quick Selection Tools** to instantly assign conditions:
+* **Auto-Select Perimeter:** Automatically anchors the outer boundary of an open mesh (great for plates/shells).
+* **Auto-Select Center:** Automatically selects the physical center vertex of the mesh to apply a localized load.
+* **Clear Selection:** Resets all anchors and loads.
+
+**Boundary Types & Load Settings:**
+3. In the UI, choose your Boundary Condition type from the dropdown: **Fully Clamped (Cantilever)** or **Simply Supported (Hinged)**.
+4. Set the **Total Force** (in Newtons) and select which axis (X, Y, or Z) you want the force to push/pull along.
 
 #### Step 3: Configure Physics Engine
 You can optionally check the box to **Enable Gravity**, which will pull the entire mesh downwards along the -Y axis based on the material density you provided. You can also enable **Non-Linear Geometry**, which tells the solver to take multiple steps to calculate large, complex bends accurately.
@@ -147,6 +150,7 @@ Set the **Yaw** (left/right rotation) and **Pitch** (up/down rotation) angles to
 * **Max Bounce Cutoff:** How many times a ray is allowed to reflect before the simulation kills it.
 * **Ray Count:** How many individual rays to shoot in the swarm.
 * **Beam Spread:** How wide the beam is (in degrees). A 0 deg spread is a perfect pointer; a 45 deg spread is more like a flashlight.
+* **Beam Energy:** The initial energy value injected into the system by the laser.
 * **Reflectivity:** How shiny the mesh surface is (0.0 absorbs all light, 1.0 reflects it perfectly).
 
 #### Step 4: Fire!
