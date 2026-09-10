@@ -299,7 +299,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(btnSelectPerimeter, &QPushButton::clicked, this, [this]() {
         if (m_currentMesh.vertices.empty()) return;
 
-        // In a valid manifold mesh, outer boundary edges only belong to exactly 1 face
         for (const Edge& e : m_currentMesh.edges) {
             if (e.faceIndices.size() == 1) {
                 m_currentMesh.vertices[e.v1].isAnchored = true;
@@ -311,11 +310,9 @@ MainWindow::MainWindow(QWidget *parent)
         m_renderer->setMesh(m_currentMesh);
     });
 
-    // 2. Algorithmic Center Point Selection
     connect(btnSelectCenter, &QPushButton::clicked, this, [this]() {
         if (m_currentMesh.vertices.empty()) return;
 
-        // Calculate the bounding box to find the absolute geometric center
         double minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9, minZ = 1e9, maxZ = -1e9;
         for (const auto& v : m_currentMesh.vertices) {
             if (v.x < minX) minX = v.x;
@@ -333,7 +330,6 @@ MainWindow::MainWindow(QWidget *parent)
         int bestIdx = -1;
         double minDist = 1e9;
 
-        // Find the node physically closest to the bounding box center
         for (size_t i = 0; i < m_currentMesh.vertices.size(); ++i) {
             const auto& v = m_currentMesh.vertices[i];
             double dist = std::sqrt(std::pow(v.x - cx, 2) + std::pow(v.y - cy, 2) + std::pow(v.z - cz, 2));
@@ -351,7 +347,7 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 
-    // 3. Clear All Selections
+    //clear all selections
     connect(btnClearSelection, &QPushButton::clicked, this, [this]() {
         for (auto& v : m_currentMesh.vertices) {
             v.isAnchored = false;

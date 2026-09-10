@@ -167,7 +167,7 @@ bool HeatTransferSolver::solve() {
 
     std::cout << "\n" << logStream.str() << "\n";
 
-    // ---> ADDED: Qt UI Popup
+    //Qt ui popup
     QMessageBox::information(nullptr, "Thermal Solver Results", QString::fromStdString(logStream.str()));
 
     return true;
