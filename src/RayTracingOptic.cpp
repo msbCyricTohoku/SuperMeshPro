@@ -2,6 +2,10 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <chrono>
+#include <sstream>
+#include <QMessageBox>
+#include <QString>
 
 RayTracerOptic::RayTracerOptic(const MeshTopology& mesh) : m_mesh(mesh) {}
 
@@ -155,6 +159,9 @@ std::vector<std::vector<Eigen::Vector3d>> RayTracerOptic::simulateBeamSwarm(
 
     std::cout << "Shooting " << numRays << " rays across CPU threads...\n";
 
+
+    auto time_start_rays = std::chrono::high_resolution_clock::now();
+
 #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < numRays; ++i) {
 
@@ -177,11 +184,35 @@ std::vector<std::vector<Eigen::Vector3d>> RayTracerOptic::simulateBeamSwarm(
         allPaths[i] = simulateLightBeam(jitteredRay, maxBounces, nodalEnergies, initialEnergy, reflectivity);
     }
 
+    auto time_end_rays = std::chrono::high_resolution_clock::now();
+    double total_time_s = std::chrono::duration<double>(time_end_rays - time_start_rays).count();
+    double rays_per_sec = numRays / total_time_s;
+
     std::cout << "Ray transport computation complete!\n";
 
 
+    //std::cout << "\n--- Optical Performance Metrics ---\n"
+    //          << "Total Rays Fired: " << numRays << "\n"
+    //          << "Max Bounces: " << maxBounces << "\n"
+    //          << "Execution Time: " << std::fixed << std::setprecision(4) << total_time_s << " s\n"
+    //          << "Throughput: " << std::fixed << std::setprecision(2) << rays_per_sec << " rays/second\n\n";
+
+
+    std::ostringstream logStream;
+    logStream << "--- Optical Performance Metrics ---\n"
+              << "Total Rays Fired: " << numRays << "\n"
+              << "Max Bounces: " << maxBounces << "\n"
+              << "Execution Time: " << std::fixed << std::setprecision(4) << total_time_s << " s\n"
+              << "Throughput: " << std::fixed << std::setprecision(2) << rays_per_sec << " rays/sec\n";
+
+
+    std::cout << "\n" << logStream.str() << "\n";
+
     exportEnergiesToCSV("energy_heatmap.csv", nodalEnergies);
     exportPathsToCSV("ray_paths.csv", allPaths);
+
+
+    QMessageBox::information(nullptr, "Ray Tracing Results", QString::fromStdString(logStream.str()));
 
     return allPaths;
 }

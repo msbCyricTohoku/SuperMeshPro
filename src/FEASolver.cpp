@@ -7,6 +7,10 @@
 #include <iomanip>
 #include <omp.h>
 #include <Eigen/SparseLU>
+#include <QMessageBox>
+#include <QString>
+#include <sstream>
+#include <chrono>
 
 FEASolver::FEASolver(MeshTopology& mesh, MaterialProps mat) : m_mesh(mesh), m_mat(mat) {}
 
@@ -18,6 +22,7 @@ void FEASolver::addForce(int vIdx, double fx, double fy, double fz, double mx, d
     m_bcs.push_back({vIdx, false, false, false, false, false, false, fx, fy, fz, mx, my, mz});
 }
 
+/*
 Eigen::MatrixXd FEASolver::computeElementStiffness(const Vertex& v1, const Vertex& v2, const Vertex& v3) {
     Eigen::Vector3d p1(v1.x, v1.y, v1.z);
     Eigen::Vector3d p2(v2.x, v2.y, v2.z);
@@ -90,9 +95,15 @@ Eigen::MatrixXd FEASolver::computeElementStiffness(const Vertex& v1, const Verte
 
     //calculates a relaxation factor based on thickness squared vs area
     double alpha = (m_mat.thickness * m_mat.thickness) / (A + 1e-9);
+    //if (alpha > 1.0) alpha = 1.0;
+    //if (alpha < 0.005) alpha = 0.001;
 
-    if (alpha > 1.0) alpha = 1.0;
-    if (alpha < 0.005) alpha = 0.001; //0.005  1e-6
+
+    if (alpha < 1e-4) alpha = 1e-4;
+
+    if (alpha > 0.015) alpha = 0.015;
+    
+   // double alpha = 0.001;
     //                                                                  shear matrix X by alpha
     Eigen::Matrix2d Ds = Eigen::Matrix2d::Identity() * (k_shear * G * m_mat.thickness * alpha);
     Eigen::MatrixXd K_shear = Bs.transpose() * Ds * Bs * A;
@@ -126,10 +137,185 @@ Eigen::MatrixXd FEASolver::computeElementStiffness(const Vertex& v1, const Verte
 
     return T.transpose() * K_local * T;
 }
+*/
+
+Eigen::MatrixXd FEASolver::computeElementStiffness(const Vertex& v1, const Vertex& v2, const Vertex& v3) {
+    Eigen::Vector3d p1(v1.x, v1.y, v1.z);
+    Eigen::Vector3d p2(v2.x, v2.y, v2.z);
+    Eigen::Vector3d p3(v3.x, v3.y, v3.z);
+
+    //local coordinate
+    Eigen::Vector3d Vx = (p2 - p1).normalized();
+    Eigen::Vector3d Vz = Vx.cross(p3 - p1).normalized();
+    Eigen::Vector3d Vy = Vz.cross(Vx).normalized();
+
+    //mapping to 2D coord.
+    double x1 = 0.0, y1 = 0.0;
+    double x2 = (p2 - p1).dot(Vx), y2 = 0.0;
+    double x3 = (p3 - p1).dot(Vx), y3 = (p3 - p1).dot(Vy);
+    double A = 0.5 * std::abs(x2 * y3);
+
+    if (A < 1e-9) return Eigen::MatrixXd::Zero(18, 18);
+
+    //Bm membrane displacement matrix here
+    Eigen::MatrixXd Bm(3, 6);
+    Bm << y2 - y3, 0.0,     y3 - y1, 0.0,     y1 - y2, 0.0,
+        0.0,     x3 - x2, 0.0,     x1 - x3, 0.0,     x2 - x1,
+        x3 - x2, y2 - y3, x1 - x3, y3 - y1, x2 - x1, y1 - y2;
+    Bm /= (2.0 * A);
+
+    //D is the material matrix
+    Eigen::Matrix3d D;
+    double E = m_mat.youngsModulus;
+    double nu = m_mat.poissonRatio;
+    D << 1.0, nu, 0.0, nu, 1.0, 0.0, 0.0, 0.0, (1.0 - nu)/2.0;
+    D *= E / (1.0 - nu * nu);
+
+    //Km -- membrane stiffness
+    Eigen::MatrixXd Km = Bm.transpose() * D * Bm * A * m_mat.thickness;
+
+    //linear shape function inverse Jacobian
+    double x21 = x2 - x1; double y21 = y2 - y1;
+    double x31 = x3 - x1; double y31 = y3 - y1;
+    double detJ = x21 * y31 - x31 * y21; //2 * A
+
+    //shape function derivatives dN/dx (row 0), dN/dy (row 1)
+    Eigen::MatrixXd dN(2, 3);
+    dN(0, 0) = (y2 - y3) / detJ;  dN(0, 1) = (y3 - y1) / detJ;  dN(0, 2) = (y1 - y2) / detJ;
+    dN(1, 0) = (x3 - x2) / detJ;  dN(1, 1) = (x1 - x3) / detJ;  dN(1, 2) = (x2 - x1) / detJ;
+
+    //bending strain displacement matrix Bb
+    //map to 9-DOF structure as [w1, thx1, thy1, w2, thx2, thy2, w3, thx3, thy3]
+    Eigen::MatrixXd Bb = Eigen::MatrixXd::Zero(3, 9);
+    for (int i = 0; i < 3; ++i) {
+        Bb(0, i*3 + 1) = dN(0, i); //d(thx)/dx
+        Bb(1, i*3 + 2) = dN(1, i); //d(thy)/dy
+        Bb(2, i*3 + 1) = dN(1, i); //d(thx)/dy
+        Bb(2, i*3 + 2) = dN(0, i); //d(thy)/dx
+    }
+
+    double thick3 = std::pow(m_mat.thickness, 3);
+    Eigen::Matrix3d Db = D * (thick3 / 12.0);
+    Eigen::MatrixXd K_bend = Bb.transpose() * Db * Bb * A;
+
+
+
+
+       //MITC3 covariant shear strain formulation
+       Eigen::MatrixXd B_tilde = Eigen::MatrixXd::Zero(2, 9);
+
+    //tangential strain r-axis (Edge 1 -> 2)
+    B_tilde(0, 0) = -1.0;
+    B_tilde(0, 3) =  1.0;
+    B_tilde(0, 1) = -0.5 * x21;
+    B_tilde(0, 4) = -0.5 * x21;
+    B_tilde(0, 2) = -0.5 * y21;
+    B_tilde(0, 5) = -0.5 * y21;
+
+    //tangential strain s-axis (Edge 1 -> 3)
+    B_tilde(1, 0) = -1.0;
+    B_tilde(1, 6) =  1.0;
+    B_tilde(1, 1) = -0.5 * x31;
+    B_tilde(1, 7) = -0.5 * x31;
+    B_tilde(1, 2) = -0.5 * y31;
+    B_tilde(1, 8) = -0.5 * y31;
+
+    //mixed coupling vector from Edge 2 -> 3
+    double x32 = x3 - x2;
+    double y32 = y3 - y2;
+    Eigen::VectorXd g3 = Eigen::VectorXd::Zero(9);
+    g3(3) = -1.0;
+    g3(6) =  1.0;
+    g3(4) = -0.5 * x32;
+    g3(7) = -0.5 * x32;
+    g3(5) = -0.5 * y32;
+    g3(8) = -0.5 * y32;
+
+    //Eigen::VectorXd interpolator = (1.0 / 3.0) * (g3 - B_tilde.row(0).transpose() - B_tilde.row(1).transpose());
+    //B_tilde.row(0) += interpolator.transpose();
+    //B_tilde.row(1) += interpolator.transpose();
+
+
+    //**************************************************************
+    //c = g3 - g2 + g1
+    Eigen::VectorXd c = g3 - B_tilde.row(1).transpose() + B_tilde.row(0).transpose();
+
+    //apply the equal and opposite interpolations at the centroid (r = 1/3, s = 1/3)
+    B_tilde.row(0) -= (1.0 / 3.0) * c.transpose();
+    B_tilde.row(1) += (1.0 / 3.0) * c.transpose();
+    //**************************************************************
+
+    //inverse Jacobian
+    Eigen::Matrix2d InvJ;
+    InvJ(0, 0) =  y31 / detJ;   InvJ(0, 1) = -y21 / detJ;
+    InvJ(1, 0) = -x31 / detJ;   InvJ(1, 1) =  x21 / detJ;
+
+    Eigen::MatrixXd Bs = InvJ * B_tilde;
+
+    //**************************************************************
+    //shear stiffness integration
+    double G_shear = E / (2.0 * (1.0 + nu));
+    double k_shear = 5.0 / 6.0;
+
+    Eigen::Matrix2d Ds = Eigen::Matrix2d::Identity() * (k_shear * G_shear * m_mat.thickness);
+    Eigen::MatrixXd K_shear = Bs.transpose() * Ds * Bs * A;
+
+    //combine plate fields
+    Eigen::MatrixXd Kb = K_bend + K_shear;
+
+    //**************************************************************
+    //kinematic rotation field
+
+    //mindlin plate theory uses DOFs [w, beta_x, beta_y]
+    Eigen::MatrixXd T_plate = Eigen::MatrixXd::Zero(9, 9);
+    for (int i = 0; i < 3; ++i) {
+        T_plate(i*3 + 0, i*3 + 0) =  1.0; // w maps to w
+        T_plate(i*3 + 1, i*3 + 2) =  1.0; // beta_x (XZ plane) maps to theta_y
+        T_plate(i*3 + 2, i*3 + 1) = -1.0; // beta_y (YZ plane) maps to -theta_x
+    }
+
+    //transform the 9x9 plate stiffness matrix into shell rotation space
+    Kb = T_plate.transpose() * Kb * T_plate;
+
+    //local 18x18 matrix
+    Eigen::MatrixXd K_local = Eigen::MatrixXd::Zero(18, 18);
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+
+            K_local(i*6,     j*6)     = Km(i*2,     j*2);
+            K_local(i*6,     j*6 + 1) = Km(i*2,     j*2 + 1);
+            K_local(i*6 + 1, j*6)     = Km(i*2 + 1, j*2);
+            K_local(i*6 + 1, j*6 + 1) = Km(i*2 + 1, j*2 + 1);
+
+            for (int m = 0; m < 3; ++m) {
+                for (int n = 0; n < 3; ++n) {
+                    K_local(i*6 + 2 + m, j*6 + 2 + n) = Kb(i*3 + m, j*3 + n);
+                }
+            }
+        }
+        //prevent structural matrix singularity
+        K_local(i*6 + 5, i*6 + 5) += E * m_mat.thickness * A * 1e-4;
+    }
+    //-------------------------------------------------------------------------
+    //local matrix transforma to global coord system
+    Eigen::Matrix3d R;
+    R << Vx.x(), Vx.y(), Vx.z(),
+        Vy.x(), Vy.y(), Vy.z(),
+        Vz.x(), Vz.y(), Vz.z();
+
+    Eigen::MatrixXd T = Eigen::MatrixXd::Zero(18, 18);
+    for (int i = 0; i < 6; ++i) {
+        T.block<3,3>(i*3, i*3) = R;
+    }
+
+    return T.transpose() * K_local * T;
+}
 
 
 //revised with newton raphson nonlinear solver
 bool FEASolver::solve(bool useGravity, bool useNonLinear) {
+    auto time_start_total = std::chrono::high_resolution_clock::now();
+
     int numNodes = m_mesh.vertices.size();
     if (numNodes == 0) return false;
 
@@ -138,6 +324,8 @@ bool FEASolver::solve(bool useGravity, bool useNonLinear) {
 
     m_displacements = Eigen::VectorXd::Zero(dof);
     m_history.clear();
+
+    std::ostringstream logStream;
 
     //original coordiantes of vertices
     std::vector<double> origX(numNodes), origY(numNodes), origZ(numNodes);
@@ -148,6 +336,13 @@ bool FEASolver::solve(bool useGravity, bool useNonLinear) {
         origZ[i] = m_mesh.vertices[i].z;
 
     }
+
+
+    logStream << "Mode: 6-DOF Shell (Newton-Raphson)\n"
+              << "Non-Linear Geometry: " << (useNonLinear ? "ON" : "OFF") << "\n"
+              << "Gravity (-Y): " << (useGravity ? "ON" : "OFF") << "\n\n";
+
+    std::cout << "\n--- Starting FEA ---\n" << logStream.str();
 
     std::cout << "\n--- Starting FEA ---\n"
               << "Mode: 6-DOF Shell (Newton-Raphson)\n"
@@ -189,6 +384,10 @@ bool FEASolver::solve(bool useGravity, bool useNonLinear) {
     Eigen::VectorXd F_int_converged = Eigen::VectorXd::Zero(dof);
     Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
 
+    double total_assembly_ms = 0.0;
+    double total_solve_ms = 0.0;
+    long long non_zeros = 0;
+
     //nonlinear stepping load
     for (int step = 0; step < steps; ++step) {
 
@@ -201,6 +400,9 @@ bool FEASolver::solve(bool useGravity, bool useNonLinear) {
         for (int iter = 0; iter < max_iters; ++iter) {
 
             std::vector<Eigen::Triplet<double>> triplets;
+
+
+        auto time_start_assembly = std::chrono::high_resolution_clock::now();
 
 //tangent stiffness matrix (K_T) using deformed geometry at current index (current)
 #pragma omp parallel
@@ -242,6 +444,12 @@ bool FEASolver::solve(bool useGravity, bool useNonLinear) {
 
             K_T.setFromTriplets(triplets.begin(), triplets.end());
 
+            non_zeros = K_T.nonZeros(); // capture NNZ for RAM footprint
+
+            //stop assembly timer
+            auto time_end_assembly = std::chrono::high_resolution_clock::now();
+            total_assembly_ms += std::chrono::duration<double, std::milli>(time_end_assembly - time_start_assembly).count();
+
             //current internal Force and the residual out of balance vector (R = F_ext - F_int)
             Eigen::VectorXd F_int_current = F_int_converged + (K_T * Delta_U_step);
             Eigen::VectorXd R = F_ext - F_int_current;
@@ -260,6 +468,7 @@ bool FEASolver::solve(bool useGravity, bool useNonLinear) {
 
             }
 
+            auto time_start_solve = std::chrono::high_resolution_clock::now();
             //solve for iterative displacement increment (dU)
             solver.compute(K_T);
             if (solver.info() != Eigen::Success) {
@@ -269,6 +478,10 @@ bool FEASolver::solve(bool useGravity, bool useNonLinear) {
 
             Eigen::VectorXd dU = solver.solve(R);
             if (solver.info() != Eigen::Success) return false;
+
+
+            auto time_end_solve = std::chrono::high_resolution_clock::now();
+            total_solve_ms += std::chrono::duration<double, std::milli>(time_end_solve - time_start_solve).count();
 
             Delta_U_step += dU;
             m_displacements += dU;
@@ -295,8 +508,12 @@ bool FEASolver::solve(bool useGravity, bool useNonLinear) {
             if (nodeDisp > maxDisp) maxDisp = nodeDisp;
         }
 
+        logStream << "Step " << step + 1 << "/" << steps
+                  << " Completed. Max Disp: " << maxDisp << " mm\n";
+
         m_history.push_back({loadFactor, maxDisp});
         std::cout << "Step " << step + 1 << "/" << steps << " Completed. Max Disp: " << maxDisp << " mm\n";
+
     }
 
     //restore the mesh
@@ -305,6 +522,21 @@ bool FEASolver::solve(bool useGravity, bool useNonLinear) {
         m_mesh.vertices[i].y = origY[i];
         m_mesh.vertices[i].z = origZ[i];
     }
+
+
+    auto time_end_total = std::chrono::high_resolution_clock::now();
+    double total_time_ms = std::chrono::duration<double, std::milli>(time_end_total - time_start_total).count();
+    double ram_mb = (non_zeros * 12.0) / (1024.0 * 1024.0); // 12 bytes per sparse non-zero entry
+
+    logStream << "\n--- Performance Metrics ---\n"
+              << "Degrees of Freedom: " << dof << "\n"
+              << "Matrix Non-Zeros: " << non_zeros << " (~" << std::fixed << std::setprecision(2) << ram_mb << " MB)\n"
+              << "Assembly Time: " << total_assembly_ms << " ms\n"
+              << "Solver Time: " << total_solve_ms << " ms\n"
+              << "Total Wall Time: " << total_time_ms << " ms\n";
+
+    QMessageBox::information(nullptr, "FEA Solver Results",
+                             QString::fromStdString(logStream.str()));
 
     return true;
 }
@@ -391,6 +623,17 @@ std::vector<double> FEASolver::getRawStresses() {
             Bb(2, 5) = Bm(1, 3);
             Bb(2, 7) = -Bm(0, 4);
             Bb(2, 8) = Bm(1, 5);
+
+
+            //heatmap
+            Eigen::MatrixXd T_plate = Eigen::MatrixXd::Zero(9, 9);
+            for (int k = 0; k < 3; ++k) {
+                T_plate(k*3 + 0, k*3 + 0) =  1.0;
+                T_plate(k*3 + 1, k*3 + 2) =  1.0;
+                T_plate(k*3 + 2, k*3 + 1) = -1.0;
+            }
+            Bb = Bb * T_plate;
+            //********************************
 
             total_strain += (t / 2.0) * (Bb * Ue_b);
 

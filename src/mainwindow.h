@@ -84,7 +84,9 @@ private:
     void updateAnalysisPanel(); //calculates the metrics and shows if heatmap is on
 
     //FEA analysis function
-    void FEA_Analysis(double E, double nu, double t, double density, double totalForce, int axis, double visualScale, bool useGravity, bool useNonLinear);
+    //void FEA_Analysis(double E, double nu, double t, double density, double totalForce, int axis, double visualScale, bool useGravity, bool useNonLinear);
+
+    void FEA_Analysis(double E, double nu, double t, double density, double totalForce, int axis, double visualScale, bool useGravity, bool useNonLinear, int bcType);
 
 };
 

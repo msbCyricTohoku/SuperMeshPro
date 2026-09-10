@@ -260,11 +260,49 @@ void MeshRenderer::paintGL() {
 
 //mouse interaction for rotation and zooming -- need to add movements with right click or something
 //void MeshRenderer::mousePressEvent(QMouseEvent *event) { m_lastMousePos = event->pos(); }
+/*
 void MeshRenderer::mouseMoveEvent(QMouseEvent *event) {
     int dx = event->x() - m_lastMousePos.x();
     int dy = event->y() - m_lastMousePos.y();
     if (event->buttons() & Qt::LeftButton) { m_xRot += dy * 0.5f; m_yRot += dx * 0.5f; update(); }
     else if (event->buttons() & Qt::RightButton) { m_zTrans += dy * 0.05f; update(); }
+    m_lastMousePos = event->pos();
+}
+*/
+
+void MeshRenderer::mouseMoveEvent(QMouseEvent *event) {
+    int dx = event->x() - m_lastMousePos.x();
+    int dy = event->y() - m_lastMousePos.y();
+
+    if (event->buttons() & Qt::LeftButton) {
+        //drag while holding ctrl or shift easier selection
+        if (event->modifiers() & Qt::ControlModifier) {
+            int vIdx = pickVertex(event->pos());
+            if (vIdx != -1 && !m_mesh.vertices[vIdx].isAnchored) {
+                m_mesh.vertices[vIdx].isAnchored = true;
+                m_mesh.vertices[vIdx].isSelected = false; //prevent overlapping constraints
+                update();
+            }
+        }
+        else if (event->modifiers() & Qt::ShiftModifier) {
+            int vIdx = pickVertex(event->pos());
+            if (vIdx != -1 && !m_mesh.vertices[vIdx].isSelected) {
+                m_mesh.vertices[vIdx].isSelected = true;
+                m_mesh.vertices[vIdx].isAnchored = false;
+                update();
+            }
+        }
+        //normal camera rotation
+        else {
+            m_xRot += dy * 0.5f;
+            m_yRot += dx * 0.5f;
+            update();
+        }
+    }
+    else if (event->buttons() & Qt::RightButton) {
+        m_zTrans += dy * 0.05f;
+        update();
+    }
     m_lastMousePos = event->pos();
 }
 

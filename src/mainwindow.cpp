@@ -93,7 +93,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->toolBar->addWidget(clipCheck);
 
     QSlider *clipSlider = new QSlider(Qt::Horizontal, this);
-    clipSlider->setRange(-100, 100); // Represents -100 to +100 offset
+    clipSlider->setRange(-100, 100); //represents -100 to +100 offset
     clipSlider->setValue(0);
     clipSlider->setFixedWidth(120);
     clipSlider->setEnabled(false);
@@ -204,9 +204,20 @@ MainWindow::MainWindow(QWidget *parent)
     feaLayout->addWidget(new QLabel("<b>FEA Boundary Conditions</b>"));
     feaLayout->addWidget(new QLabel("<i>Ctrl+Click = Fixed, Shift+Click = Force</i>"));
 
+    //***** boundary condition selection
+    QComboBox *bcTypeBox = new QComboBox();
+    bcTypeBox->addItems({
+        "Fully Clamped (Cantilever)",
+        "Simply Supported (Hinged)"
+    });
+    feaLayout->addWidget(bcTypeBox);
+
+    //************************************
+
     feaLayout->addWidget(new QLabel("<b>Material Properties</b>"));
     QDoubleSpinBox *youngsBox = new QDoubleSpinBox();
-    youngsBox->setRange(1.0, 500000.0); youngsBox->setValue(200000.0);
+    youngsBox->setRange(1.0, 50000000.0);
+    youngsBox->setValue(200000.0);
     youngsBox->setPrefix("E: "); youngsBox->setSuffix(" MPa");
     feaLayout->addWidget(youngsBox);
 
@@ -217,6 +228,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     QDoubleSpinBox *thickBox = new QDoubleSpinBox();
     thickBox->setRange(0.01, 100.0); thickBox->setValue(1.0);
+    thickBox->setDecimals(5);
     thickBox->setPrefix("t: "); thickBox->setSuffix(" mm");
     feaLayout->addWidget(thickBox);
 
@@ -231,6 +243,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     feaLayout->addWidget(new QLabel("<b>Load Setup</b>"));
     QDoubleSpinBox *forceBox = new QDoubleSpinBox();
+    forceBox->setDecimals(8);
     forceBox->setRange(-1e9, 1e9); forceBox->setValue(1000.0);
     forceBox->setPrefix("Total Force: "); forceBox->setSuffix(" N");
     feaLayout->addWidget(forceBox);
@@ -265,6 +278,88 @@ MainWindow::MainWindow(QWidget *parent)
     QPushButton *btnResetFEA = new QPushButton("Reset Mesh", this);
     feaLayout->addWidget(btnResetFEA);
     feaLayout->addStretch();
+
+
+    //**************************************8
+    feaLayout->addWidget(new QLabel("<b>Quick Selection Tools</b>"));
+    QHBoxLayout *selectionLayout = new QHBoxLayout();
+
+    QPushButton *btnSelectPerimeter = new QPushButton("Auto-Select Perimeter", this);
+    QPushButton *btnSelectCenter = new QPushButton("Auto-Select Center", this);
+    QPushButton *btnClearSelection = new QPushButton("Clear Selection", this);
+
+    selectionLayout->addWidget(btnSelectPerimeter);
+    selectionLayout->addWidget(btnSelectCenter);
+    selectionLayout->addWidget(btnClearSelection);
+    feaLayout->addLayout(selectionLayout);
+
+
+
+
+    connect(btnSelectPerimeter, &QPushButton::clicked, this, [this]() {
+        if (m_currentMesh.vertices.empty()) return;
+
+        // In a valid manifold mesh, outer boundary edges only belong to exactly 1 face
+        for (const Edge& e : m_currentMesh.edges) {
+            if (e.faceIndices.size() == 1) {
+                m_currentMesh.vertices[e.v1].isAnchored = true;
+                m_currentMesh.vertices[e.v1].isSelected = false;
+                m_currentMesh.vertices[e.v2].isAnchored = true;
+                m_currentMesh.vertices[e.v2].isSelected = false;
+            }
+        }
+        m_renderer->setMesh(m_currentMesh);
+    });
+
+    // 2. Algorithmic Center Point Selection
+    connect(btnSelectCenter, &QPushButton::clicked, this, [this]() {
+        if (m_currentMesh.vertices.empty()) return;
+
+        // Calculate the bounding box to find the absolute geometric center
+        double minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9, minZ = 1e9, maxZ = -1e9;
+        for (const auto& v : m_currentMesh.vertices) {
+            if (v.x < minX) minX = v.x;
+            if (v.x > maxX) maxX = v.x;
+            if (v.y < minY) minY = v.y;
+            if (v.y > maxY) maxY = v.y;
+            if (v.z < minZ) minZ = v.z;
+            if (v.z > maxZ) maxZ = v.z;
+        }
+
+        double cx = (minX + maxX) / 2.0;
+        double cy = (minY + maxY) / 2.0;
+        double cz = (minZ + maxZ) / 2.0;
+
+        int bestIdx = -1;
+        double minDist = 1e9;
+
+        // Find the node physically closest to the bounding box center
+        for (size_t i = 0; i < m_currentMesh.vertices.size(); ++i) {
+            const auto& v = m_currentMesh.vertices[i];
+            double dist = std::sqrt(std::pow(v.x - cx, 2) + std::pow(v.y - cy, 2) + std::pow(v.z - cz, 2));
+
+            if (dist < minDist) {
+                minDist = dist;
+                bestIdx = static_cast<int>(i);
+            }
+        }
+
+        if (bestIdx != -1) {
+            m_currentMesh.vertices[bestIdx].isSelected = true;
+            m_currentMesh.vertices[bestIdx].isAnchored = false;
+            m_renderer->setMesh(m_currentMesh);
+        }
+    });
+
+    // 3. Clear All Selections
+    connect(btnClearSelection, &QPushButton::clicked, this, [this]() {
+        for (auto& v : m_currentMesh.vertices) {
+            v.isAnchored = false;
+            v.isSelected = false;
+        }
+        m_renderer->setMesh(m_currentMesh);
+    });
+    //***************************************8
 
     //here is the optics tab for the ray tracing
     QWidget *opticsTab = new QWidget();
@@ -355,13 +450,26 @@ MainWindow::MainWindow(QWidget *parent)
     addDockWidget(Qt::LeftDockWidgetArea, simDock);
 
     //for FEA run button connect ******************** double check
-    connect(btnRunFEA, &QPushButton::clicked, this, [this, youngsBox, poissonBox, thickBox, densityBox, forceBox, axisBox, scaleBox, chkGravity, chkNonLinear]() {
+    //connect(btnRunFEA, &QPushButton::clicked, this, [this, youngsBox, poissonBox, thickBox, densityBox, forceBox, axisBox, scaleBox, chkGravity, chkNonLinear]() {
+
+      //  m_renderer->clearRays();
+     //   FEA_Analysis(youngsBox->value(), poissonBox->value(), thickBox->value(), densityBox->value(),
+     //                forceBox->value(), axisBox->currentIndex(), scaleBox->value(),
+     //                chkGravity->isChecked(), chkNonLinear->isChecked());
+    //});
+
+
+    connect(btnRunFEA, &QPushButton::clicked, this, [this, youngsBox, poissonBox, thickBox, densityBox, forceBox, axisBox, scaleBox, chkGravity, chkNonLinear, bcTypeBox]() {
 
         m_renderer->clearRays();
         FEA_Analysis(youngsBox->value(), poissonBox->value(), thickBox->value(), densityBox->value(),
                      forceBox->value(), axisBox->currentIndex(), scaleBox->value(),
-                     chkGravity->isChecked(), chkNonLinear->isChecked());
+                     chkGravity->isChecked(), chkNonLinear->isChecked(),
+                     bcTypeBox->currentIndex()); //dropdown menu index here
     });
+
+
+
     connect(btnResetFEA, &QPushButton::clicked, this, &MainWindow::on_actionUndo_triggered);
 
     //ray tracing optic shoot button
@@ -484,7 +592,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     thermalLayout->addWidget(new QLabel("<b>Heat Transfer Model</b>"));
 
- //   QCheckBox *chkGravity = new QCheckBox("Enable Gravity (-Y Axis)");
+  //  QCheckBox *chkGravity = new QCheckBox("Enable Gravity (-Y Axis)");
   //  chkGravity->setChecked(false);
   //  feaLayout->addWidget(chkGravity);
 
@@ -821,8 +929,9 @@ void MainWindow::updateAnalysisPanel() {
     m_statsDisplay->setHtml(stats);
 }
 
+void MainWindow::FEA_Analysis(double E, double nu, double t, double density, double totalForce, int axis, double visualScale, bool useGravity, bool useNonLinear, int bcType){
 
-void MainWindow::FEA_Analysis(double E, double nu, double t, double density, double totalForce, int axis, double visualScale, bool useGravity, bool useNonLinear) {
+//void MainWindow::FEA_Analysis(double E, double nu, double t, double density, double totalForce, int axis, double visualScale, bool useGravity, bool useNonLinear) {
     if (m_currentMesh.vertices.empty()) return;
 
     std::vector<int> pullNodes;
@@ -857,7 +966,12 @@ void MainWindow::FEA_Analysis(double E, double nu, double t, double density, dou
     for (size_t i = 0; i < m_currentMesh.vertices.size(); ++i) {
         if (m_currentMesh.vertices[i].isAnchored) {
             //apply all 6 constraints (translations + rotations)
+            if (bcType == 0) {
             solver.addConstraint(i, true, true, true, true, true, true);
+            }
+            else if (bcType == 1) {
+            solver.addConstraint(i, true, true, true, false, false, false);
+            }
         }
 
         if (m_currentMesh.vertices[i].isSelected) {

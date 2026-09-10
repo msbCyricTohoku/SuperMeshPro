@@ -2,6 +2,10 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <chrono>
+#include <sstream>
+#include <QMessageBox>
+#include <QString>
 
 HeatTransferSolver::HeatTransferSolver(const MeshTopology& mesh, ThermalProps props)
     : m_mesh(mesh), m_props(props) {}
@@ -54,6 +58,8 @@ Eigen::Matrix3d HeatTransferSolver::computeThermalStiffness(const Vertex& v1, co
 }
 
 bool HeatTransferSolver::solve() {
+    auto time_start_total = std::chrono::high_resolution_clock::now();
+
     int numNodes = m_mesh.vertices.size();
     if (numNodes == 0) return false;
 
@@ -62,6 +68,8 @@ bool HeatTransferSolver::solve() {
 
     std::vector<Eigen::Triplet<double>> triplets;
     Eigen::VectorXd F = Eigen::VectorXd::Zero(numNodes);
+
+    auto time_start_assembly = std::chrono::high_resolution_clock::now();
 
     //global stiffness matrix
     for (size_t fIdx = 0; fIdx < m_mesh.faces.size(); ++fIdx) {
@@ -91,6 +99,12 @@ bool HeatTransferSolver::solve() {
     Eigen::SparseMatrix<double> K(numNodes, numNodes);
     K.setFromTriplets(triplets.begin(), triplets.end());
 
+
+    //------------
+    auto time_end_assembly = std::chrono::high_resolution_clock::now();
+    double assembly_ms = std::chrono::duration<double, std::milli>(time_end_assembly - time_start_assembly).count();
+    //------------
+
     //boundary conditions (penalty method)
     double penalty = m_props.thermalConductivity * 1e9;
 
@@ -102,6 +116,8 @@ bool HeatTransferSolver::solve() {
             F(bc.vertexIndex) += bc.heatFlux;
         }
     }
+
+    auto time_start_solve = std::chrono::high_resolution_clock::now();
 
     //solver here
     Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
@@ -117,12 +133,42 @@ bool HeatTransferSolver::solve() {
         return false;
     }
 
+
+    auto time_end_solve = std::chrono::high_resolution_clock::now();
+    double solve_ms = std::chrono::duration<double, std::milli>(time_end_solve - time_start_solve).count();
+
     for (int i = 0; i < numNodes; ++i) {
         m_temperatures[i] = T(i);
         //std::cout << T(i) << std::endl;
     }
 
     exportToCSV("thermal_results.csv");
+
+    auto time_end_total = std::chrono::high_resolution_clock::now();
+    double total_time_ms = std::chrono::duration<double, std::milli>(time_end_total - time_start_total).count();
+    double ram_mb = (K.nonZeros() * 12.0) / (1024.0 * 1024.0);
+
+   // std::cout << "\n--- Thermal Performance Metrics ---\n"
+   //           << "Degrees of Freedom: " << numNodes << "\n"
+    //          << "Matrix Non-Zeros: " << K.nonZeros() << " (~" << std::fixed << std::setprecision(2) << ram_mb << " MB)\n"
+    //          << "Assembly Time: " << assembly_ms << " ms\n"
+   //           << "Solver Time: " << solve_ms << " ms\n"
+   //           << "Total Wall Time: " << total_time_ms << " ms\n\n";
+
+
+    std::ostringstream logStream;
+    logStream << "- Thermal Performance Metrics -\n"
+              << "Degrees of Freedom: " << numNodes << "\n"
+              << "Matrix Non-Zeros: " << K.nonZeros() << " (~" << std::fixed << std::setprecision(2) << ram_mb << " MB)\n"
+              << "Assembly Time: " << assembly_ms << " ms\n"
+              << "Solver Time: " << solve_ms << " ms\n"
+              << "Total Wall Time: " << total_time_ms << " ms\n";
+
+
+    std::cout << "\n" << logStream.str() << "\n";
+
+    // ---> ADDED: Qt UI Popup
+    QMessageBox::information(nullptr, "Thermal Solver Results", QString::fromStdString(logStream.str()));
 
     return true;
 }

@@ -37,7 +37,7 @@ MOVE          = mv -f
 TAR           = tar -cf
 COMPRESS      = gzip -9f
 DISTNAME      = SuperMeshPro1.0.0
-DISTDIR = /home/ben/Desktop/SuperMeshPro/.tmp/SuperMeshPro1.0.0
+DISTDIR = /home/ben/SuperMeshPro/.tmp/SuperMeshPro1.0.0
 LINK          = g++
 LFLAGS        = -Wl,-O1 -pipe -fopenmp -O2 -std=gnu++1z -flto=48 -fno-fat-lto-objects -fuse-linker-plugin -fPIC
 LIBS          = $(SUBLIBS) /usr/lib/libQt5OpenGL.so /usr/lib/libQt5Widgets.so /usr/lib/libQt5Gui.so /usr/lib/libQt5Core.so -lGL -lpthread   
@@ -194,7 +194,6 @@ DIST          = /usr/lib/qt/mkspecs/features/spec_pre.prf \
 		/usr/lib/qt/mkspecs/features/qt_config.prf \
 		/usr/lib/qt/mkspecs/linux-g++/qmake.conf \
 		/usr/lib/qt/mkspecs/features/spec_post.prf \
-		.qmake.stash \
 		/usr/lib/qt/mkspecs/features/exclusive_builds.prf \
 		/usr/lib/qt/mkspecs/features/toolchain.prf \
 		/usr/lib/qt/mkspecs/features/default_pre.prf \
@@ -362,7 +361,6 @@ Makefile: SuperMeshPro.pro /usr/lib/qt/mkspecs/linux-g++/qmake.conf /usr/lib/qt/
 		/usr/lib/qt/mkspecs/features/qt_config.prf \
 		/usr/lib/qt/mkspecs/linux-g++/qmake.conf \
 		/usr/lib/qt/mkspecs/features/spec_post.prf \
-		.qmake.stash \
 		/usr/lib/qt/mkspecs/features/exclusive_builds.prf \
 		/usr/lib/qt/mkspecs/features/toolchain.prf \
 		/usr/lib/qt/mkspecs/features/default_pre.prf \
@@ -508,7 +506,6 @@ Makefile: SuperMeshPro.pro /usr/lib/qt/mkspecs/linux-g++/qmake.conf /usr/lib/qt/
 /usr/lib/qt/mkspecs/features/qt_config.prf:
 /usr/lib/qt/mkspecs/linux-g++/qmake.conf:
 /usr/lib/qt/mkspecs/features/spec_post.prf:
-.qmake.stash:
 /usr/lib/qt/mkspecs/features/exclusive_builds.prf:
 /usr/lib/qt/mkspecs/features/toolchain.prf:
 /usr/lib/qt/mkspecs/features/default_pre.prf:
@@ -596,13 +593,13 @@ moc_mainwindow.cpp: src/mainwindow.h \
 		src/MeshRenderer.h \
 		moc_predefs.h \
 		/usr/bin/moc
-	/usr/bin/moc $(DEFINES) --include /home/ben/Desktop/SuperMeshPro/moc_predefs.h -I/usr/lib/qt/mkspecs/linux-g++ -I/home/ben/Desktop/SuperMeshPro -I/usr/include/eigen3 -I/usr/include/qt -I/usr/include/qt/QtOpenGL -I/usr/include/qt/QtWidgets -I/usr/include/qt/QtGui -I/usr/include/qt/QtCore -I/usr/include/c++/15.2.1 -I/usr/include/c++/15.2.1/x86_64-pc-linux-gnu -I/usr/include/c++/15.2.1/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include -I/usr/local/include -I/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include-fixed -I/usr/include src/mainwindow.h -o moc_mainwindow.cpp
+	/usr/bin/moc $(DEFINES) --include /home/ben/SuperMeshPro/moc_predefs.h -I/usr/lib/qt/mkspecs/linux-g++ -I/home/ben/SuperMeshPro -I/usr/include/eigen3 -I/usr/include/qt -I/usr/include/qt/QtOpenGL -I/usr/include/qt/QtWidgets -I/usr/include/qt/QtGui -I/usr/include/qt/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/mainwindow.h -o moc_mainwindow.cpp
 
 moc_MeshRenderer.cpp: src/MeshRenderer.h \
 		src/MeshTopology.h \
 		moc_predefs.h \
 		/usr/bin/moc
-	/usr/bin/moc $(DEFINES) --include /home/ben/Desktop/SuperMeshPro/moc_predefs.h -I/usr/lib/qt/mkspecs/linux-g++ -I/home/ben/Desktop/SuperMeshPro -I/usr/include/eigen3 -I/usr/include/qt -I/usr/include/qt/QtOpenGL -I/usr/include/qt/QtWidgets -I/usr/include/qt/QtGui -I/usr/include/qt/QtCore -I/usr/include/c++/15.2.1 -I/usr/include/c++/15.2.1/x86_64-pc-linux-gnu -I/usr/include/c++/15.2.1/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include -I/usr/local/include -I/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include-fixed -I/usr/include src/MeshRenderer.h -o moc_MeshRenderer.cpp
+	/usr/bin/moc $(DEFINES) --include /home/ben/SuperMeshPro/moc_predefs.h -I/usr/lib/qt/mkspecs/linux-g++ -I/home/ben/SuperMeshPro -I/usr/include/eigen3 -I/usr/include/qt -I/usr/include/qt/QtOpenGL -I/usr/include/qt/QtWidgets -I/usr/include/qt/QtGui -I/usr/include/qt/QtCore -I/usr/include/c++/16 -I/usr/include/c++/16/x86_64-pc-linux-gnu -I/usr/include/c++/16/backward -I/usr/lib/gcc/x86_64-pc-linux-gnu/16/include -I/usr/local/include -I/usr/include src/MeshRenderer.h -o moc_MeshRenderer.cpp
 
 compiler_moc_objc_header_make_all:
 compiler_moc_objc_header_clean:
@@ -686,7 +683,7 @@ uninstall_target: FORCE
 
 install_icon: first FORCE
 	@test -d $(INSTALL_ROOT)/usr/share/icons/hicolor/64x64/apps || mkdir -p $(INSTALL_ROOT)/usr/share/icons/hicolor/64x64/apps
-	$(QINSTALL) /home/ben/Desktop/SuperMeshPro/src/resources/icon.png $(INSTALL_ROOT)/usr/share/icons/hicolor/64x64/apps/icon.png
+	$(QINSTALL) /home/ben/SuperMeshPro/src/resources/icon.png $(INSTALL_ROOT)/usr/share/icons/hicolor/64x64/apps/icon.png
 
 uninstall_icon: FORCE
 	-$(DEL_FILE) -r $(INSTALL_ROOT)/usr/share/icons/hicolor/64x64/apps/icon.png
