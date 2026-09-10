@@ -124,6 +124,7 @@ Under the FEA tab, you can use the **Quick Selection Tools** to instantly assign
 * **Clear Selection:** Resets all anchors and loads.
 
 **Boundary Types & Load Settings:**
+
 3. In the UI, choose your Boundary Condition type from the dropdown: **Fully Clamped (Cantilever)** or **Simply Supported (Hinged)**.
 4. Set the **Total Force** (in Newtons) and select which axis (X, Y, or Z) you want the force to push/pull along.
 
